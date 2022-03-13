@@ -9,7 +9,9 @@ import (
 )
 
 type AssetEventsResponse struct {
-	AssetEvents []Event `json:"asset_events" bson:"asset_events"`
+	NextPage     *string `json:"next"`
+	PreviousPage *string `json:"previous"`
+	AssetEvents  []Event `json:"asset_events" bson:"asset_events"`
 }
 
 type Event struct {
@@ -135,6 +137,7 @@ type RetrievingEventsParams struct {
 	Limit                int
 	OccurredBefore       int64
 	OccurredAfter        int64
+	Cursor               string
 }
 
 func NewRetrievingEventsParams() *RetrievingEventsParams {
@@ -185,10 +188,14 @@ func (p RetrievingEventsParams) Encode() string {
 	if p.AuctionType != AuctionTypeNone {
 		q.Set("auction_type", string(p.AuctionType))
 	}
-	q.Set("limit", fmt.Sprintf("%d", p.Limit))
-	q.Set("offset", fmt.Sprintf("%d", p.Offset))
-	q.Set("occurred_after", fmt.Sprintf("%d", p.OccurredAfter))
+	//	q.Set("limit", fmt.Sprintf("%d", p.Limit))
+	//q.Set("offset", fmt.Sprintf("%d", p.Offset))
+	//q.Set("occurred_after", fmt.Sprintf("%d", p.OccurredAfter))
 	q.Set("occurred_before", fmt.Sprintf("%d", p.OccurredBefore))
+
+	if p.EventType != "" {
+		q.Set("cursor", string(p.Cursor))
+	}
 
 	return q.Encode()
 }
@@ -203,8 +210,13 @@ func (o Opensea) RetrievingEventsWithContext(ctx context.Context, params *Retrie
 		params = NewRetrievingEventsParams()
 	}
 
+	occuredAfter := time.Unix(params.OccurredAfter, 0)
+	var cursor string
 	events = []*Event{}
 	for true {
+		if cursor != "" {
+			params.Cursor = cursor
+		}
 		path := "/api/v1/events/?" + params.Encode()
 		b, err := o.GetPath(ctx, path)
 		if err != nil {
@@ -217,6 +229,10 @@ func (o Opensea) RetrievingEventsWithContext(ctx context.Context, params *Retrie
 		err = json.Unmarshal(b, eventsResp)
 		if err != nil {
 			return nil, err
+		}
+
+		if eventsResp.PreviousPage != nil {
+			cursor = *eventsResp.PreviousPage
 		}
 
 		// Filters
@@ -241,6 +257,10 @@ func (o Opensea) RetrievingEventsWithContext(ctx context.Context, params *Retrie
 						continue
 					}
 				}
+			}
+
+			if e.CreatedDate.Time().Before(occuredAfter) {
+				break
 			}
 
 			tmp[cnt] = &eventsResp.AssetEvents[i]
