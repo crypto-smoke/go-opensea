@@ -185,9 +185,6 @@ func (p RetrievingEventsParams) Encode() string {
 	if p.AuctionType != AuctionTypeNone {
 		q.Set("auction_type", string(p.AuctionType))
 	}
-	q.Set("limit", fmt.Sprintf("%d", p.Limit))
-	q.Set("offset", fmt.Sprintf("%d", p.Offset))
-	q.Set("occurred_after", fmt.Sprintf("%d", p.OccurredAfter))
 	q.Set("occurred_before", fmt.Sprintf("%d", p.OccurredBefore))
 
 	return q.Encode()
