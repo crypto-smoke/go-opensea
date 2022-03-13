@@ -50,6 +50,8 @@ type Event struct {
 	PayoutCollection    interface{}         `json:"payout_collection" bson:"payout_collection"`
 	BuyOrder            uint64              `json:"buy_order" bson:"buy_order"`
 	SellOrder           uint64              `json:"sell_order" bson:"sell_order"`
+	NextPage            string              `json:"next_page"`
+	PreviousPage        string              `json:"previous_page"`
 }
 
 func (e Event) IsBundle() bool {
@@ -131,10 +133,7 @@ type RetrievingEventsParams struct {
 	EventType            EventType
 	OnlyOpensea          bool
 	AuctionType          AuctionType
-	Offset               int
-	Limit                int
 	OccurredBefore       int64
-	OccurredAfter        int64
 }
 
 func NewRetrievingEventsParams() *RetrievingEventsParams {
@@ -145,10 +144,7 @@ func NewRetrievingEventsParams() *RetrievingEventsParams {
 		EventType:            EventTypeNone,
 		OnlyOpensea:          true,
 		AuctionType:          AuctionTypeNone,
-		Offset:               0,
-		Limit:                100,
 		OccurredBefore:       time.Now().Unix(),
-		OccurredAfter:        time.Now().Unix() - 3600,
 	}
 }
 
@@ -245,10 +241,6 @@ func (o Opensea) RetrievingEventsWithContext(ctx context.Context, params *Retrie
 		}
 		events = append(events, tmp[0:cnt]...)
 
-		if len(eventsResp.AssetEvents) < params.Limit {
-			break
-		}
-		params.Offset += params.Limit
 	}
 
 	return
