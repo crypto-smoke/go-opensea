@@ -1,4 +1,4 @@
-module github.com/gsmachado/go-opensea
+module github.com/crypto-smoke/go-opensea
 
 go 1.17
 
